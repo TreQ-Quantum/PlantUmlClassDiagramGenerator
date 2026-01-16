@@ -57,8 +57,15 @@ public class PlantUmlFromDirGenerator: IPlantUmlGenerator
         var excludeUmlBeginEndTags = parameters.ContainsKey("-excludeUmlBeginEndTags");
         var files = Directory.EnumerateFiles(inputRoot, "*.cs", SearchOption.AllDirectories);
 
+        Accessibilities ignoreAcc = IPlantUmlGenerator.GetIgnoreAccessibilities(parameters);
+        bool createAssociation = parameters.ContainsKey("-createAssociation");
+        bool attributeRequired = parameters.ContainsKey("-attributeRequired");
+        bool addPackageTags = parameters.ContainsKey("-addPackageTags");
+        bool allInOne = parameters.ContainsKey("-allInOne");
+
         var includeRefs = new StringBuilder();
-        if (!excludeUmlBeginEndTags) includeRefs.AppendLine("@startuml");
+        if (!excludeUmlBeginEndTags)
+            includeRefs.AppendLine("@startuml");
 
         var error = false;
         var filesToProcess = ExcludeFileFilter.GetFilesToProcess(files, excludePaths, inputRoot);
@@ -76,7 +83,6 @@ public class PlantUmlFromDirGenerator: IPlantUmlGenerator
                 {
                     var tree = CSharpSyntaxTree.ParseText(SourceText.From(stream));
                     var root = tree.GetRoot();
-                    Accessibilities ignoreAcc = IPlantUmlGenerator.GetIgnoreAccessibilities(parameters);
 
                     using var filestream = new FileStream(outputFile, FileMode.Create, FileAccess.Write);
                     using var writer = new StreamWriter(filestream);
@@ -84,15 +90,22 @@ public class PlantUmlFromDirGenerator: IPlantUmlGenerator
                         writer,
                         "    ",
                         ignoreAcc,
-                        parameters.ContainsKey("-createAssociation"),
-                        parameters.ContainsKey("-attributeRequired"),
+                        createAssociation,
+                        attributeRequired,
                         excludeUmlBeginEndTags,
-                        parameters.ContainsKey("-addPackageTags"));
+                        addPackageTags);
                     gen.Generate(root);
                     relationships.AddAll(gen.relationships);
+                    if (!gen.HasContent)
+                    {
+                        writer.Close();
+                        filestream.Close();
+                        File.Delete(outputFile);
+                        continue;
+                    }
                 }
 
-                if (parameters.ContainsKey("-allInOne"))
+                if (allInOne)
                 {
                     var lines = File.ReadAllLines(outputFile);
                     if (!excludeUmlBeginEndTags)
@@ -106,8 +119,8 @@ public class PlantUmlFromDirGenerator: IPlantUmlGenerator
                 }
                 else
                 {
-                    var newRoot = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? @".\" : @".";
-                    includeRefs.AppendLine("!include " + outputFile.Replace(outputRoot, newRoot));
+                    var newRoot = @".";
+                    includeRefs.AppendLine("!include " + outputFile.Replace(outputRoot, newRoot).Replace('\\', '/'));
                 }
             }
             catch (Exception e)

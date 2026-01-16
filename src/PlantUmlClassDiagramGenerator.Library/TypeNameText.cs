@@ -14,8 +14,8 @@ public class TypeNameText
         var typeArgs = string.Empty;
         if (syntax is GenericNameSyntax genericName && genericName.TypeArgumentList != null)
         {
-            var count = genericName.TypeArgumentList.Arguments.Count;
-            identifier = $"\"{identifier}`{count}\"";
+            //var count = genericName.TypeArgumentList.Arguments.Count;
+            //identifier = $"\"{identifier}`{count}\"";
             typeArgs = "<" + string.Join(",", genericName.TypeArgumentList.Arguments) + ">";
         }
         else if (identifier.StartsWith("@"))
@@ -58,8 +58,8 @@ public class TypeNameText
         var typeArgs = string.Empty;
         if (syntax is TypeDeclarationSyntax typeDeclaration && typeDeclaration.TypeParameterList != null)
         {
-            var count = typeDeclaration.TypeParameterList.Parameters.Count;
-            identifier = $"\"{identifier}`{count}\"";
+            //var count = typeDeclaration.TypeParameterList.Parameters.Count;
+            //identifier = $"\"{identifier}`{count}\"";
             typeArgs = "<" + string.Join(",", typeDeclaration.TypeParameterList.Parameters) + ">";
         }
         else if (identifier.StartsWith("@"))

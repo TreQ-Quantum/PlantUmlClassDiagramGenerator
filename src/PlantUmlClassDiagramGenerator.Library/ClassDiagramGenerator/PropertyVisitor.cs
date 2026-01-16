@@ -13,13 +13,24 @@ public partial class ClassDiagramGenerator
         if (node.AttributeLists.HasIgnoreAttribute()) { return; }
         if (IsIgnoreMember(node.Modifiers)) { return; }
 
-        var type = node.Type;
+        bool isInterfaceMember = node.Parent.IsKind(SyntaxKind.InterfaceDeclaration);
+        if (!IsPublicMember(node.Modifiers, isInterfaceMember))
+            return;
+
+        var name = node.Identifier.ToString();
+        if (excludedMemberPatterns.Any(name.Contains))
+            return;
+
+        var propertyType = node.Type;
 
         var parentClass = (node.Parent as TypeDeclarationSyntax);
         var isTypeParameterProp = parentClass?.TypeParameterList?.Parameters
-            .Any(t => t.Identifier.Text == type.ToString()) ?? false;
+            .Any(t => t.Identifier.Text == propertyType.ToString()) ?? false;
 
-        var typeIgnoringNullable = type is NullableTypeSyntax nullableTypeSyntax ? nullableTypeSyntax.ElementType : type;
+        TypeSyntax basePropertyType =
+            propertyType is NullableTypeSyntax nullableTypeSyntax ? nullableTypeSyntax.ElementType : propertyType;
+        basePropertyType =
+            basePropertyType is ArrayTypeSyntax arrayTypeSyntax ? arrayTypeSyntax.ElementType : basePropertyType;
 
         var associationAttrSyntax = node.AttributeLists.GetAssociationAttributeSyntax();
         if (associationAttrSyntax is not null)
@@ -29,36 +40,27 @@ public partial class ClassDiagramGenerator
         }
         else if (!createAssociation
             || node.AttributeLists.HasIgnoreAssociationAttribute()
-            || typeIgnoringNullable is PredefinedTypeSyntax
+            || basePropertyType is PredefinedTypeSyntax
             || isTypeParameterProp)
         {
-            var modifiers = GetMemberModifiersText(node.Modifiers,
-                isInterfaceMember: node.Parent.IsKind(SyntaxKind.InterfaceDeclaration));
-            var name = node.Identifier.ToString();
+            var modifiers = GetMemberModifiersText(node.Modifiers, isInterfaceMember);
             //Property does not have an accessor is an expression-bodied property. (get only)
-            var accessorStr = "<<get>>";
-            if (node.AccessorList != null)
-            {
-                var accessor = node.AccessorList.Accessors
-                    .Where(x => !x.Modifiers.Select(y => y.Kind()).Contains(SyntaxKind.PrivateKeyword))
-                    .Select(x => $"<<{(x.Modifiers.ToString() == "" ? "" : (x.Modifiers.ToString() + " "))}{x.Keyword}>>");
-                accessorStr = string.Join(" ", accessor);
-            }
             var useLiteralInit = node.Initializer?.Value?.Kind().ToString().EndsWith("LiteralExpression") ?? false;
             var initValue = useLiteralInit
                 ? (" = " + escapeDictionary.Aggregate(node.Initializer.Value.ToString(),
                     (n, e) => Regex.Replace(n, e.Key, e.Value)))
                 : "";
 
-            WriteLine($"{modifiers}{name} : {type} {accessorStr}{initValue}");
+            WriteLine($"{modifiers}{name} : {propertyType} {initValue}");
+            relationships.AddAssociationFrom(node, basePropertyType);
         }
         else
         {
-            if (type.GetType() == typeof(GenericNameSyntax))
+            if (propertyType.GetType() == typeof(GenericNameSyntax))
             {
-                additionalTypeDeclarationNodes.Add(type);
+                additionalTypeDeclarationNodes.Add(propertyType);
             }
-            relationships.AddAssociationFrom(node, typeIgnoringNullable);
+            relationships.AddAssociationFrom(node, basePropertyType);
         }
     }
 }

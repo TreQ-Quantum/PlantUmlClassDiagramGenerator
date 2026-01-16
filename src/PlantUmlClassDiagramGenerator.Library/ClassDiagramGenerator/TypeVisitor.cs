@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -23,17 +24,19 @@ public partial class ClassDiagramGenerator
         if (node.AttributeLists.HasIgnoreAttribute()) { return; }
         if (SkipInnerTypeDeclaration(node)) { return; }
 
-        relationships.AddInnerclassRelationFrom(node);
-        relationships.AddInheritanceFrom(node);
-
-        var modifiers = GetTypeModifiersText(node.Modifiers);
-        var keyword = (node.Modifiers.Any(SyntaxKind.AbstractKeyword) ? "abstract " : "")
-                      + node.Keyword.ToString();
-
         var typeName = TypeNameText.From(node);
         var name = typeName.Identifier;
         var typeParam = typeName.TypeArguments;
         var type = $"{name}{typeParam}";
+        if (excludedTypePatterns.Any(name.Contains))
+            return;
+
+        relationships.AddInnerclassRelationFrom(node);
+        relationships.AddInheritanceFrom(node, excludedTypePatterns);
+
+        var modifiers = GetTypeModifiersText(node.Modifiers);
+        var keyword = (node.Modifiers.Any(SyntaxKind.AbstractKeyword) ? "abstract " : "")
+                      + node.Keyword.ToString();
 
         types.Add(name);
 

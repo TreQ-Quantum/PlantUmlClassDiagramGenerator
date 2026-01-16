@@ -1,4 +1,6 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
+using System.Xml.Linq;
 
 namespace PlantUmlClassDiagramGenerator.Library.ClassDiagramGenerator;
 
@@ -14,6 +16,9 @@ public partial class ClassDiagramGenerator
 
         var type = $"{node.Identifier}";
 
+        if (excludedTypePatterns.Any(type.Contains))
+            return;
+
         types.Add(type);
 
         WriteLine($"{node.EnumKeyword} {type} {{");
@@ -27,6 +32,8 @@ public partial class ClassDiagramGenerator
     
     public override void VisitEnumMemberDeclaration(EnumMemberDeclarationSyntax node)
     {
+        if (excludedMemberPatterns.Any(node.Identifier.Text.Contains))
+            return;
         WriteLine($"{node.Identifier}{node.EqualsValue},");
     }
 }

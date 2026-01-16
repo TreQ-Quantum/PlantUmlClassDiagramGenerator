@@ -9,13 +9,16 @@ namespace PlantUmlClassDiagramGenerator.Library.ClassDiagramGenerator;
 
 public partial class ClassDiagramGenerator
 {
-        public override void VisitFieldDeclaration(FieldDeclarationSyntax node)
+    public override void VisitFieldDeclaration(FieldDeclarationSyntax node)
     {
         if (node.AttributeLists.HasIgnoreAttribute()) { return; }
         if (IsIgnoreMember(node.Modifiers)) { return; }
 
-        var modifiers = GetMemberModifiersText(node.Modifiers,
-                isInterfaceMember: node.Parent.IsKind(SyntaxKind.InterfaceDeclaration));
+        bool isInterfaceMember = node.Parent.IsKind(SyntaxKind.InterfaceDeclaration);
+        if (!IsPublicMember(node.Modifiers, isInterfaceMember))
+            return;
+
+        var modifiers = GetMemberModifiersText(node.Modifiers, isInterfaceMember);
         var type = node.Declaration.Type;
         var variables = node.Declaration.Variables;
         var parentClass = (node.Parent as TypeDeclarationSyntax);
@@ -43,6 +46,7 @@ public partial class ClassDiagramGenerator
                         (f, e) => Regex.Replace(f, e.Key, e.Value)))
                     : "";
                 WriteLine($"{modifiers}{field.Identifier} : {type}{initValue}");
+                relationships.AddAssociationFrom(node, field);
             }
             else
             {

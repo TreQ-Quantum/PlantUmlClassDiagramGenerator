@@ -30,6 +30,9 @@ public partial class ClassDiagramGenerator
 
         var typeName = NamespaceNameText.From(node);
 
+        if (!typeName.Identifier.StartsWith("TreQ"))
+            return;
+
         WriteLine($"package \"{typeName.Identifier}\" {{");
         nestingDepth++;
         visitBase();

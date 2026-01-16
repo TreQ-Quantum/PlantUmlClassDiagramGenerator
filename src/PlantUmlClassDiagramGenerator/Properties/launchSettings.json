@@ -1,7 +1,8 @@
 {
   "profiles": {
     "PlantUmlClassDiagramGenerator": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "-dir C:\\Users\\Natha\\source\\repos\\TreQ-Quantum\\TreQ\\TIL C:\\Users\\Natha\\source\\repos\\TreQ-Quantum\\oaq-specification\\oaq-specification\\uml\\Job -addPackageTags -public -excludePaths \"JsonExport,Results\""
     },
     "WSL": {
       "commandName": "WSL2",

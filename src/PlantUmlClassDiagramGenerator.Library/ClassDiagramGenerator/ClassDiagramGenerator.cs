@@ -17,6 +17,40 @@ public partial class ClassDiagramGenerator(
     bool excludeUmlBeginEndTags = false,
     bool addPackageTags = false) : CSharpSyntaxWalker
 {
+    private static readonly string[] excludedTypePatterns =
+        [
+            "Visitor", "InstructionRelationshipResult",
+            "FunctionApplication",
+            "BooleanLiteral",
+            "Binary", "Negation", "Conditional",
+            "ComplexConstructor",
+            "IsEmpty", "Count", "Element",
+            "Filter", "Map",
+            "ForEachComplex",
+            "NumericToBooleanFunction", "NumericToNumericFunction",
+            "ToComplexFunction", "ComplexToBlockFunction", "ComplexToBooleanFunction", "ComplexToNumericFunction", "ComplexParameter",
+            "BooleanRegister", "NumericRegister", "ComplexRegister", "Assign",
+            "ComplexAmplitude",
+            "NumericalWaveform", "ComplexWaveform",
+            "AcquisitionNumericRangeResult", "IRegisterOrParameter",
+        ];
+
+    private static readonly string[] excludedMemberPatterns =
+        [
+            "Accept", "IsEmpty", "Count", "Last",
+            "Equals", "OrEqual",
+            "GetRealComponent", "GetImaginaryComponent",
+            "Degrees", "Minutes", "Hours", "Days",
+            "Kilo", "Mega", "Giga", "Tera", "Peta", "Exa", "Zetta", "Yotta", "Ronna", "Quecca", "Ronto", "Quecto",
+            "Milli", "Micro", "Nano", "Pico", "Femto", "Atto", "Zepto", "Yocto", "Ronno", "Quetta",
+            // Exclude methods that are not relevant for class diagrams
+            "ToString", "Equals", "GetHashCode", "GetType",
+            // Exclude properties that are not relevant for class diagrams
+            "Length", "Capacity", "Count",
+            // Exclude derived properties that are not relevant for class diagrams
+            "BodyName", "Parameter", "BodyContent",
+        ];
+
     private readonly HashSet<string> types = [];
     private readonly List<SyntaxNode> additionalTypeDeclarationNodes = [];
     private readonly Accessibilities ignoreMemberAccessibilities = ignoreMemberAccessibilities;
@@ -33,6 +67,8 @@ public partial class ClassDiagramGenerator(
         {@"(?<before>[^{]){(?<after>{[^{])", "${before}&#123;${after}"},
         {@"(?<before>[^}])}(?<after>[^}])", "${before}&#125;${after}"},
     };
+
+    public bool HasContent => types.Count != 0;
 
     public void Generate(SyntaxNode root)
     {
@@ -191,4 +227,7 @@ public partial class ClassDiagramGenerator(
             || token.IsKind(SyntaxKind.ProtectedKeyword)
             || token.IsKind(SyntaxKind.InternalKeyword));
     }
+
+    private static bool IsPublicMember(SyntaxTokenList modifiers, bool isInterfaceMember) =>
+        modifiers.Any(token => token.IsKind(SyntaxKind.PublicKeyword)) || (!HasAccessModifier(modifiers) && isInterfaceMember);
 }

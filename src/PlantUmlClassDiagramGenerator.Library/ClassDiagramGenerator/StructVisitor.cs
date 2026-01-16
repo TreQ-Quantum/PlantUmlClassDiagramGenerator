@@ -11,7 +11,7 @@ public partial class ClassDiagramGenerator
         if (SkipInnerTypeDeclaration(node)) { return; }
 
         relationships.AddInnerclassRelationFrom(node);
-        relationships.AddInheritanceFrom(node);
+        relationships.AddInheritanceFrom(node, excludedTypePatterns);
 
         var typeName = TypeNameText.From(node);
         var name = typeName.Identifier;

@@ -1,9 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using PlantUmlClassDiagramGenerator.Attributes;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace PlantUmlClassDiagramGenerator.Library;
 
@@ -19,7 +19,7 @@ public class RelationshipCollection : IEnumerable<Relationship>
         }
     }
 
-    public void AddInheritanceFrom(TypeDeclarationSyntax syntax)
+    public void AddInheritanceFrom(TypeDeclarationSyntax syntax, string[] excludedTypePatterns)
     {
         if (syntax.BaseList == null) return;
 
@@ -29,6 +29,8 @@ public class RelationshipCollection : IEnumerable<Relationship>
         {
             if (typeStntax.Type is not SimpleNameSyntax typeNameSyntax) continue;
             var baseTypeName = TypeNameText.From(typeNameSyntax);
+            if (excludedTypePatterns.Any(baseTypeName.Identifier.Contains))
+                return;
             items.Add(new Relationship(baseTypeName, subTypeName, "<|--", baseTypeName.TypeArguments));
         }
     }
@@ -69,13 +71,29 @@ public class RelationshipCollection : IEnumerable<Relationship>
 
     public void AddAssociationFrom(ParameterSyntax node, RecordDeclarationSyntax parent)
     {
-        if (node.Type is not SimpleNameSyntax leafNode 
-            || parent is not BaseTypeDeclarationSyntax rootNode) return;
+        TypeSyntax nodeType = node.Type;
+        if (nodeType is NullableTypeSyntax nullableLeafNode)
+            nodeType = nullableLeafNode.ElementType;
+        if (nodeType is ArrayTypeSyntax arrayLeafNode)
+            nodeType = arrayLeafNode.ElementType;
+        if (nodeType is not SimpleNameSyntax leafNode
+            || parent is not BaseTypeDeclarationSyntax rootNode)
+        {
+            return;
+        }
+        if (leafNode.Identifier.Text == "TimeSpan")
+            return; // Skip TimeSpan properties
+        if (parent.TypeParameterList is not null
+            && parent.TypeParameterList.Parameters
+                .Any(typeParam => typeParam.Identifier.Text == leafNode.Identifier.Text))
+        {
+            return;
+        }
 
         var symbol = node.Default == null ? "-->" : "o->";
-        var nodeIdentifier = node.Identifier.ToString();
+        string nodeIdentifier = node.Identifier.ToString();
         var leafName = TypeNameText.From(leafNode);
-        var rootName = TypeNameText.From(rootNode);
+        TypeNameText rootName = TypeNameText.From(rootNode);
         AddRelationship(leafName, rootName, symbol, nodeIdentifier);
     }
 
@@ -145,9 +163,9 @@ public class RelationshipCollection : IEnumerable<Relationship>
         items.Add(new Relationship(rootName, leafName, symbol, attribute.RootLabel, attribute.LeafLabel, attribute.Label));
     }
 
-    private void AddRelationship(TypeNameText leafName, TypeNameText rootName, string symbol, string nodeIdentifier)
+    private void AddRelationship(TypeNameText leafName, TypeNameText rootName, string symbol, string basePropertyName)
     {
-        items.Add(new Relationship(rootName, leafName, symbol, "", nodeIdentifier + leafName.TypeArguments));
+        items.Add(new Relationship(rootName, leafName, symbol, "", basePropertyName: basePropertyName));
     }
 
     public IEnumerator<Relationship> GetEnumerator()

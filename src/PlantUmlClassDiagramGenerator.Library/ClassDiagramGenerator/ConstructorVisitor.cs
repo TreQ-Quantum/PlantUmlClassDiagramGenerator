@@ -11,6 +11,12 @@ public partial class ClassDiagramGenerator
     {
         if (node.AttributeLists.HasIgnoreAttribute()) { return; }
         if (IsIgnoreMember(node.Modifiers)) { return; }
+
+        bool isInterfaceMember = node.Parent.IsKind(SyntaxKind.InterfaceDeclaration);
+        if (!IsPublicMember(node.Modifiers, isInterfaceMember))
+            return;
+        return;
+
         foreach (var parameter in node.ParameterList?.Parameters)
         {
             var associationAttrSyntax = parameter.AttributeLists.GetAssociationAttributeSyntax();
@@ -20,8 +26,7 @@ public partial class ClassDiagramGenerator
                 relationships.AddAssociationFrom(node, parameter, associationAttr);
             }
         }
-        var modifiers = GetMemberModifiersText(node.Modifiers,
-            isInterfaceMember: node.Parent.IsKind(SyntaxKind.InterfaceDeclaration));
+        var modifiers = GetMemberModifiersText(node.Modifiers, isInterfaceMember);
         var name = node.Identifier.ToString();
         var args = node.ParameterList.Parameters.Select(p => $"{p.Identifier}:{p.Type}");
 

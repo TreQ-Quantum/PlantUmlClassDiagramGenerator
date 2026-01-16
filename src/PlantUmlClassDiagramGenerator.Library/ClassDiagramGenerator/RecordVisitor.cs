@@ -15,20 +15,24 @@ public partial class ClassDiagramGenerator
         if (node.AttributeLists.HasIgnoreAttribute()) { return; }
         if (SkipInnerTypeDeclaration(node)) { return; }
 
-        relationships.AddInnerclassRelationFrom(node);
-        relationships.AddInheritanceFrom(node);
-        var modifiers = GetTypeModifiersText(node.Modifiers);
-        var abstractKeyword = (node.Modifiers.Any(SyntaxKind.AbstractKeyword) ? "abstract " : "");
-
         var typeName = TypeNameText.From(node);
         var name = typeName.Identifier;
         var typeParam = typeName.TypeArguments;
         var type = $"{name}{typeParam}";
         var typeParams = typeParam.TrimStart('<').TrimEnd('>').Split([','], StringSplitOptions.RemoveEmptyEntries);
+
+        if (excludedTypePatterns.Any(name.Contains))
+            return;
+
+        relationships.AddInnerclassRelationFrom(node);
+        relationships.AddInheritanceFrom(node, excludedTypePatterns);
+        var modifiers = GetTypeModifiersText(node.Modifiers);
+        var abstractKeyword = (node.Modifiers.Any(SyntaxKind.AbstractKeyword) ? "abstract " : "");
+
         types.Add(name);
 
         var typeKeyword = (node.Kind() == SyntaxKind.RecordStructDeclaration) ? "struct" : "class";
-        WriteLine($"{abstractKeyword}{typeKeyword} {type} {modifiers}<<record>> {{");
+        WriteLine($"{abstractKeyword}{typeKeyword} {type} {modifiers} {{");
 
         nestingDepth++;
         var parameters = node.ParameterList?.Parameters ?? Enumerable.Empty<ParameterSyntax>();
@@ -42,9 +46,14 @@ public partial class ClassDiagramGenerator
         WriteLine("}");
     }
 
-    private void VisitRecordParameter(RecordDeclarationSyntax node, string type, string[] typeParams, ParameterSyntax parameter)
+    private void VisitRecordParameter(RecordDeclarationSyntax node, string recordType, string[] typeParams, ParameterSyntax parameter)
     {
         var parameterType = parameter.Type;
+        TypeSyntax baseParameterType =
+            parameterType is NullableTypeSyntax nullableTypeSyntax ? nullableTypeSyntax.ElementType : parameterType;
+        baseParameterType =
+            baseParameterType is ArrayTypeSyntax arrayTypeSyntax ? arrayTypeSyntax.ElementType : baseParameterType;
+
         var isTypeParameterProp = typeParams.Contains(parameterType.ToString());
         var associationAttrSyntax = parameter.AttributeLists.GetAssociationAttributeSyntax();
         if (associationAttrSyntax is not null)
@@ -54,27 +63,24 @@ public partial class ClassDiagramGenerator
         }
         else if (!createAssociation
                  || parameter.AttributeLists.HasIgnoreAssociationAttribute()
-                 || parameterType.GetType() == typeof(PredefinedTypeSyntax)
-                 || parameterType.GetType() == typeof(NullableTypeSyntax)
+                 || baseParameterType is PredefinedTypeSyntax
                  || isTypeParameterProp)
         {
             // ParameterList-Property: always public
             var parameterModifiers = "+ ";
             var parameterName = parameter.Identifier.ToString();
 
-            // ParameterList-Property always have get and init accessor
-            var accessorStr = "<<get>> <<init>>";
-
             var useLiteralInit = parameter.Default?.Value is not null;
             var initValue = useLiteralInit
                 ? (" = " + escapeDictionary.Aggregate(parameter.Default.Value.ToString(),
                     (n, e) => Regex.Replace(n, e.Key, e.Value)))
                 : "";
-            WriteLine($"{parameterModifiers}{parameterName} : {parameterType} {accessorStr}{initValue}");
+            WriteLine($"{parameterModifiers}{parameterName} : {parameterType} {initValue}");
+            relationships.AddAssociationFrom(parameter, node);
         }
         else
         {
-            if (type.GetType() == typeof(GenericNameSyntax))
+            if (recordType.GetType() == typeof(GenericNameSyntax))
             {
                 additionalTypeDeclarationNodes.Add(parameterType);
             }
