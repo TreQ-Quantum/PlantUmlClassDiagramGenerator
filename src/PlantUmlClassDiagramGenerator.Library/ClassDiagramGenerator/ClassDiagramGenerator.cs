@@ -19,19 +19,21 @@ public partial class ClassDiagramGenerator(
 {
     private static readonly string[] excludedTypePatterns =
         [
-            "Visitor", "InstructionRelationshipResult",
+            "Visitor", "CombineVisitor", "Nothing", "InstructionRelationshipResult",
+            "ICombinable", "IComplexFunction", "INumericFunction",
             "FunctionApplication",
             "BooleanLiteral",
-            "Binary", "Negation", "Conditional",
+            "Negation",
+            "BinaryBoolean",
             "ComplexConstructor",
-            "IsEmpty", "Count", "Element",
-            "Filter", "Map",
+            "IsEmpty", "Count", "LastElement",
+            "ComplexFilter", "NumericFilter", "Map",
             "ForEachComplex",
             "NumericToBooleanFunction", "NumericToNumericFunction",
             "ToComplexFunction", "ComplexToBlockFunction", "ComplexToBooleanFunction", "ComplexToNumericFunction", "ComplexParameter",
             "BooleanRegister", "NumericRegister", "ComplexRegister", "Assign",
             "ComplexAmplitude",
-            "NumericalWaveform", "ComplexWaveform",
+            "NumericalWaveform", "ComplexWaveformStep",  // Have to manually exclude ComplexWaveform
             "AcquisitionNumericRangeResult", "IRegisterOrParameter",
         ];
 
@@ -49,6 +51,7 @@ public partial class ClassDiagramGenerator(
             "Length", "Capacity", "Count",
             // Exclude derived properties that are not relevant for class diagrams
             "BodyName", "Parameter", "BodyContent",
+            "Divide", "FloorDivide", "Modulo"
         ];
 
     private readonly HashSet<string> types = [];
