@@ -31,10 +31,12 @@ public partial class ClassDiagramGenerator(
             "ForEachComplex",
             "NumericToBooleanFunction", "NumericToNumericFunction",
             "ToComplexFunction", "ComplexToBlockFunction", "ComplexToBooleanFunction", "ComplexToNumericFunction", "ComplexParameter",
-            "BooleanRegister", "NumericRegister", "ComplexRegister", "Assign",
+            "BooleanRegister", "NumericRegister", "ComplexRegister",
+            "BooleanAssign", "NumericAssign", "ComplexAssign", "BooleanRangeAssign", "NumericRangeAssign",
             "ComplexAmplitude",
             "NumericalWaveform", "ComplexWaveformStep",  // Have to manually exclude ComplexWaveform
             "AcquisitionNumericRangeResult", "IRegisterOrParameter",
+            "Dictionary",
         ];
 
     private static readonly string[] excludedMemberPatterns =
